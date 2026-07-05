@@ -336,51 +336,96 @@ module.exports = class E2ED {
     this.processNode(document.body);
   }
 
+  // See the Chrome build's comment: we record exactly what we render in
+  // data-e2ed-shown and re-evaluate whenever Discord replaces it (a message
+  // edit), so a stale "e2ed" badge can never linger on changed content. A
+  // present key that fails to decrypt means the ciphertext no longer
+  // authenticates (edited/tampered) and is flagged red.
   processNode(node) {
     if (!node.querySelectorAll) return;
     const els =
       node.matches && node.matches('[id^="message-content-"]')
         ? [node]
         : node.querySelectorAll('[id^="message-content-"]');
-    els.forEach((el) => {
-      if (el.dataset.e2edStatus === "decrypted" || el.dataset.e2edStatus === "skip") return;
+    els.forEach(el => this.processContentEl(el));
+  }
 
-      if (!el.dataset.e2edStatus) {
-        const text = el.textContent || "";
-        if (!this.Core.isEncrypted(text)) {
-          el.dataset.e2edStatus = "skip";
-          return;
-        }
-        el.dataset.e2edCipher = text;
-        el.dataset.e2edStatus = "pending";
+  processContentEl(el) {
+    const shown = el.getAttribute("data-e2ed-shown");
+    const current = el.textContent || "";
+    if (shown !== null && current === shown) {
+      if (el.dataset.e2edStatus === "pending") this.attemptDecrypt(el);
+      return;
+    }
+    this.handleRawContent(el, current);
+  }
+
+  handleRawContent(el, raw) {
+    if (!this.Core.isEncrypted(raw)) {
+      this.removeOurTags(el);
+      el.dataset.e2edStatus = "plain";
+      el.setAttribute("data-e2ed-shown", el.textContent || "");
+      return;
+    }
+    el.dataset.e2edCipher = raw;
+    const channelId = this.currentChannelId();
+    if (!channelId || !this.session.canDecrypt(channelId)) {
+      this.showPendingPlaceholder(el);
+      el.dataset.e2edStatus = "pending";
+      return;
+    }
+    el.dataset.e2edStatus = "working";
+    el.setAttribute("data-e2ed-shown", raw);
+    this.attemptDecrypt(el);
+  }
+
+  attemptDecrypt(el) {
+    const channelId = this.currentChannelId();
+    const cipher = el.dataset.e2edCipher;
+    if (!channelId || !cipher || !this.session.canDecrypt(channelId)) return;
+    el.dataset.e2edStatus = "working";
+    this.session
+      .decrypt(channelId, cipher)
+      .then(plain => {
+        el.textContent = plain;
+        const tag = document.createElement("span");
+        tag.className = "e2ed-decrypted-tag";
+        tag.innerHTML = this.lockClosed + "e2ed";
+        el.appendChild(tag);
+        el.dataset.e2edStatus = "decrypted";
+        el.setAttribute("data-e2ed-shown", el.textContent || "");
+      })
+      .catch(() => {
         el.textContent = "";
-        const lock = document.createElement("span");
-        lock.className = "e2ed-banner-icon";
-        lock.innerHTML = this.lockClosed;
         const note = document.createElement("span");
         note.className = "e2ed-file-notice";
-        note.textContent = " Encrypted message (enter the shared password to read it)";
-        el.appendChild(lock);
+        note.textContent = "Encrypted message could not be verified ";
         el.appendChild(note);
-      }
+        const tag = document.createElement("span");
+        tag.className = "e2ed-tampered-tag";
+        tag.innerHTML = this.lockOpen + "e2ed";
+        el.appendChild(tag);
+        el.dataset.e2edStatus = "tampered";
+        el.setAttribute("data-e2ed-shown", el.textContent || "");
+      });
+  }
 
-      const channelId = this.currentChannelId();
-      if (channelId && this.session.canDecrypt(channelId)) {
-        this.session
-          .decrypt(channelId, el.dataset.e2edCipher)
-          .then((plain) => {
-            el.textContent = plain;
-            const tag = document.createElement("span");
-            tag.className = "e2ed-decrypted-tag";
-            tag.innerHTML = this.lockClosed + "e2ed";
-            el.appendChild(tag);
-            el.dataset.e2edStatus = "decrypted";
-          })
-          .catch(() => {
-            /* still pending; will retry on next sweep */
-          });
-      }
-    });
+  removeOurTags(el) {
+    const tags = el.querySelectorAll(".e2ed-decrypted-tag, .e2ed-tampered-tag");
+    tags.forEach(t => t.remove());
+  }
+
+  showPendingPlaceholder(el) {
+    el.textContent = "";
+    const lock = document.createElement("span");
+    lock.className = "e2ed-banner-icon";
+    lock.innerHTML = this.lockClosed;
+    const note = document.createElement("span");
+    note.className = "e2ed-file-notice";
+    note.textContent = " Encrypted message (enter the shared password to read it)";
+    el.appendChild(lock);
+    el.appendChild(note);
+    el.setAttribute("data-e2ed-shown", el.textContent || "");
   }
 
   // ---- UI -----------------------------------------------------------------
@@ -554,6 +599,8 @@ module.exports = class E2ED {
 .e2ed-pw-submit:hover{filter:brightness(.92);}
 .e2ed-decrypted-tag{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:0 6px;height:15px;border-radius:8px;font-size:10px;font-weight:600;text-transform:uppercase;vertical-align:middle;background:var(--green-360,#23a55a);color:#fff;}
 .e2ed-decrypted-tag svg{width:10px;height:10px;}
+.e2ed-tampered-tag{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:0 6px;height:15px;border-radius:8px;font-size:10px;font-weight:600;text-transform:uppercase;vertical-align:middle;background:var(--red-360,#f23f43);color:#fff;}
+.e2ed-tampered-tag svg{width:10px;height:10px;}
 .e2ed-file-notice{color:var(--text-muted,#949ba4);font-style:italic;}
 `
     );

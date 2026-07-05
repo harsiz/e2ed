@@ -243,9 +243,19 @@
   // ---- incoming: observe DOM ------------------------------------------------
 
   // Discord renders message text inside elements matching id^="message-content-".
-  // Each element progresses through statuses: (none) -> "pending" -> "decrypted".
-  // "pending" messages are retried on every sweep, which is how any number of
-  // already visible encrypted messages get decrypted once a key becomes known.
+  //
+  // Every time we change one of these elements we record exactly what we put in
+  // it in `data-e2ed-shown`. On each pass we compare the element's current text
+  // to that record: if they match, it is still our own output and we leave it
+  // alone (only retrying decryption if it was waiting on a key). If they differ,
+  // Discord has re-rendered the element, which happens when a message is edited.
+  // In that case we re-evaluate from scratch, so a stale "e2ed" badge can never
+  // linger on content that has since changed.
+  //
+  // Because AES-GCM is authenticated, an edited/tampered ciphertext fails to
+  // decrypt: present key + decrypt failure is shown as a red "e2ed" tamper
+  // warning, an edit into plain text drops the badge entirely, and a fresh
+  // valid re-encryption simply shows the new text with the normal green badge.
   function processMessageNode(node) {
     if (!node || !node.querySelectorAll) {
       return;
@@ -255,35 +265,79 @@
         ? [node]
         : node.querySelectorAll('[id^="message-content-"]');
 
-    contents.forEach(function (el) {
-      if (el.dataset.e2edStatus === "decrypted" || el.dataset.e2edStatus === "skip") {
-        return;
-      }
+    for (var i = 0; i < contents.length; i++) {
+      processContentEl(contents[i]);
+    }
+  }
 
-      if (!el.dataset.e2edStatus) {
-        var text = el.textContent || "";
-        if (!Core.isEncrypted(text)) {
-          el.dataset.e2edStatus = "skip";
-          return;
-        }
-        el.dataset.e2edCipher = text;
-        el.dataset.e2edStatus = "pending";
-        showPendingPlaceholder(el);
-      }
+  function processContentEl(el) {
+    var shown = el.getAttribute("data-e2ed-shown");
+    var current = el.textContent || "";
 
-      var channelId = currentChannelId();
-      if (channelId && session.canDecrypt(channelId)) {
-        session
-          .decrypt(channelId, el.dataset.e2edCipher)
-          .then(function (plain) {
-            renderDecrypted(el, plain);
-            el.dataset.e2edStatus = "decrypted";
-          })
-          .catch(function () {
-            /* still pending; will retry on next sweep */
-          });
+    // Still exactly what we last rendered: leave it, but keep retrying if it is
+    // an encrypted message still waiting for its password.
+    if (shown !== null && current === shown) {
+      if (el.dataset.e2edStatus === "pending") {
+        attemptDecrypt(el);
       }
-    });
+      return;
+    }
+
+    // Fresh element, or Discord replaced the content (an edit / re-render).
+    handleRawContent(el, current);
+  }
+
+  function handleRawContent(el, raw) {
+    if (!Core.isEncrypted(raw)) {
+      // Normal message, or an encrypted one edited into plain text: show as is,
+      // with no e2ed badge.
+      removeOurTags(el);
+      el.dataset.e2edStatus = "plain";
+      el.setAttribute("data-e2ed-shown", el.textContent || "");
+      return;
+    }
+
+    el.dataset.e2edCipher = raw;
+    var channelId = currentChannelId();
+    if (!channelId || !session.canDecrypt(channelId)) {
+      showPendingPlaceholder(el);
+      el.dataset.e2edStatus = "pending";
+      return;
+    }
+
+    // Freeze the record to the raw ciphertext so concurrent passes skip this
+    // element while the async decryption is in flight.
+    el.dataset.e2edStatus = "working";
+    el.setAttribute("data-e2ed-shown", raw);
+    attemptDecrypt(el);
+  }
+
+  function attemptDecrypt(el) {
+    var channelId = currentChannelId();
+    var cipher = el.dataset.e2edCipher;
+    if (!channelId || !cipher || !session.canDecrypt(channelId)) {
+      return;
+    }
+    el.dataset.e2edStatus = "working";
+    session
+      .decrypt(channelId, cipher)
+      .then(function (plain) {
+        renderDecrypted(el, plain);
+        el.dataset.e2edStatus = "decrypted";
+      })
+      .catch(function () {
+        // A key is present but decryption failed: the ciphertext does not
+        // authenticate (edited / tampered) or the password does not match.
+        renderTampered(el);
+        el.dataset.e2edStatus = "tampered";
+      });
+  }
+
+  function removeOurTags(el) {
+    var tags = el.querySelectorAll(".e2ed-decrypted-tag, .e2ed-tampered-tag");
+    for (var i = 0; i < tags.length; i++) {
+      tags[i].parentNode.removeChild(tags[i]);
+    }
   }
 
   function showPendingPlaceholder(el) {
@@ -296,6 +350,7 @@
     note.textContent = " Encrypted message (enter the shared password to read it)";
     el.appendChild(lock);
     el.appendChild(note);
+    el.setAttribute("data-e2ed-shown", el.textContent || "");
   }
 
   function renderDecrypted(el, plaintext) {
@@ -304,6 +359,20 @@
     tag.className = "e2ed-decrypted-tag";
     tag.innerHTML = Icons.LOCK_CLOSED + "e2ed";
     el.appendChild(tag);
+    el.setAttribute("data-e2ed-shown", el.textContent || "");
+  }
+
+  function renderTampered(el) {
+    el.textContent = "";
+    var note = document.createElement("span");
+    note.className = "e2ed-file-notice";
+    note.textContent = "Encrypted message could not be verified ";
+    el.appendChild(note);
+    var tag = document.createElement("span");
+    tag.className = "e2ed-tampered-tag";
+    tag.innerHTML = Icons.LOCK_OPEN + "e2ed";
+    el.appendChild(tag);
+    el.setAttribute("data-e2ed-shown", el.textContent || "");
   }
 
   var observer = new MutationObserver(function (mutations) {

@@ -177,6 +177,28 @@
   height: 10px;
 }
 
+/* Tamper warning pill: an encrypted message that no longer authenticates
+   (edited/tampered after it was sent, or wrong password). */
+.e2ed-tampered-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 0 6px;
+  height: 15px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  vertical-align: middle;
+  background: var(--red-360, #f23f43);
+  color: #fff;
+}
+.e2ed-tampered-tag svg {
+  width: 10px;
+  height: 10px;
+}
+
 /* Files are not supported: notice styling. */
 .e2ed-file-notice {
   color: var(--text-muted, #949ba4);
