@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "e2ed - End to End for Discord",
+  "version": "1.0.0",
+  "description": "Simple end to end encryption for Discord DMs and server messages. Both parties need e2ed installed. Text only.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "e2ed",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": ["scripting", "activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["https://discord.com/*", "https://*.discord.com/*"],
+      "css": ["core/e2ed-ui.css"],
+      "js": [
+        "core/e2ed-core.js",
+        "core/e2ed-session.js",
+        "core/e2ed-icons.js",
+        "chrome-app.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ]
+}

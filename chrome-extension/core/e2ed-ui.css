@@ -1,0 +1,184 @@
+/*
+ * e2ed-ui.css
+ * Native looking Discord styling for the e2ed lock button and banners.
+ * Uses Discord's own CSS custom properties so it tracks light and dark themes
+ * automatically, with sensible fallbacks if a variable is missing.
+ */
+
+.e2ed-lock-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  margin: 0 2px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--interactive-normal, #b5bac1);
+  border-radius: 8px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.e2ed-lock-btn:hover {
+  color: var(--interactive-hover, #dbdee1);
+  background: var(--background-modifier-hover, rgba(255, 255, 255, 0.05));
+}
+
+.e2ed-lock-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Lock states. Green = on/encrypting, red = off/plaintext, grey = no password. */
+.e2ed-lock-btn.e2ed-on {
+  color: var(--green-360, #23a55a);
+}
+.e2ed-lock-btn.e2ed-on:hover {
+  color: var(--green-400, #1a8347);
+}
+
+.e2ed-lock-btn.e2ed-off {
+  color: var(--red-360, #f23f43);
+}
+.e2ed-lock-btn.e2ed-off:hover {
+  color: var(--red-400, #da373c);
+}
+
+.e2ed-lock-btn.e2ed-no-key {
+  color: var(--text-muted, #949ba4);
+}
+
+/* Small banner shown above the message box describing the current state. */
+.e2ed-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  margin: 0 16px 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 16px;
+  font-family: var(
+    --font-primary,
+    "gg sans",
+    "Noto Sans",
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+  background: var(--background-secondary, #2b2d31);
+  color: var(--text-normal, #dbdee1);
+  border-left: 3px solid var(--text-muted, #949ba4);
+}
+
+.e2ed-banner.e2ed-on {
+  border-left-color: var(--green-360, #23a55a);
+}
+.e2ed-banner.e2ed-off {
+  border-left-color: var(--red-360, #f23f43);
+}
+
+.e2ed-banner .e2ed-banner-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.e2ed-banner .e2ed-banner-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+.e2ed-banner .e2ed-banner-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.e2ed-banner .e2ed-banner-fp {
+  margin-left: auto;
+  font-family: var(--font-code, Consolas, "Andale Mono WT", monospace);
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.e2ed-banner .e2ed-banner-action {
+  color: var(--text-link, #00a8fc);
+  cursor: pointer;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+}
+.e2ed-banner .e2ed-banner-action:hover {
+  text-decoration: underline;
+}
+
+/* Inline password form shown inside the banner. */
+.e2ed-pw-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.e2ed-pw-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-accent, #4e5058);
+  background: var(--background-primary, #313338);
+  color: var(--text-normal, #dbdee1);
+  font-size: 13px;
+  font-family: inherit;
+}
+.e2ed-pw-input:focus {
+  outline: none;
+  border-color: var(--brand-experiment, #5865f2);
+}
+
+.e2ed-pw-submit {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  background: var(--brand-experiment, #5865f2);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+}
+.e2ed-pw-submit:hover {
+  filter: brightness(0.92);
+}
+
+/* Decrypted message pill so users can tell what was end to end encrypted. */
+.e2ed-decrypted-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 0 6px;
+  height: 15px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  vertical-align: middle;
+  background: var(--green-360, #23a55a);
+  color: #fff;
+}
+.e2ed-decrypted-tag svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* Files are not supported: notice styling. */
+.e2ed-file-notice {
+  color: var(--text-muted, #949ba4);
+  font-style: italic;
+}

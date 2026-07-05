@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>e2ed</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        width: 280px;
+        margin: 0;
+        padding: 16px;
+        font-family: "gg sans", "Noto Sans", Helvetica, Arial, sans-serif;
+        background: #ffffff;
+        color: #313338;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #313338;
+          color: #dbdee1;
+        }
+      }
+      h1 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+      h1 svg {
+        width: 20px;
+        height: 20px;
+        color: #23a55a;
+      }
+      p {
+        margin: 8px 0;
+        font-size: 13px;
+        line-height: 18px;
+      }
+      .muted {
+        color: #949ba4;
+        font-size: 12px;
+      }
+      .legend {
+        display: flex;
+        gap: 12px;
+        margin: 12px 0;
+        font-size: 12px;
+      }
+      .dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 4px;
+        vertical-align: middle;
+      }
+      .green {
+        background: #23a55a;
+      }
+      .grey {
+        background: #949ba4;
+      }
+      .red {
+        background: #f23f43;
+      }
+      .forget-btn {
+        display: block;
+        width: 100%;
+        margin-top: 12px;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        background: #f23f43;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      .forget-btn:hover {
+        filter: brightness(0.92);
+      }
+      .forget-btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      #forget-status {
+        margin-top: 6px;
+        font-size: 12px;
+        min-height: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path
+          d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm3 8H9V7a3 3 0 1 1 6 0v3Z"
+        />
+      </svg>
+      e2ed
+    </h1>
+    <p>End to end encryption for Discord DMs and server channels.</p>
+    <p class="muted">
+      Open any channel, click the lock icon in the message toolbar, and enter a
+      password both of you agreed on somewhere else (in person, over the phone,
+      etc). e2ed never sends that password anywhere. The other person needs
+      e2ed installed too, with the same password set for that conversation.
+    </p>
+    <div class="legend">
+      <span><span class="dot green"></span>On</span>
+      <span><span class="dot red"></span>Off</span>
+      <span><span class="dot grey"></span>No password</span>
+    </div>
+    <p class="muted">
+      Click the lock again any time to turn encryption off or on for a
+      conversation without losing the password. Text messages only. Files and
+      attachments are not encrypted.
+    </p>
+    <p class="muted">
+      Passwords are saved per conversation in this browser so you do not have
+      to re-enter them after a reload. They are never sent anywhere.
+    </p>
+    <button type="button" class="forget-btn" id="forget-btn">Forget All Passwords</button>
+    <div id="forget-status" class="muted"></div>
+    <script src="popup.js"></script>
+  </body>
+</html>
